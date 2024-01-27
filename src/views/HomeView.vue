@@ -37,6 +37,14 @@
         @ended="moveToNextSong"
         @canplaythrough="playSong"
       ></audio>
+      <span
+        class="audio-button random-button"
+        @click="randomizeSongs"
+        :class="randomize ? 'active' : ''"
+        :title="randomize ? 'unrandomize' : 'randomize'"
+      >
+        <RandomIcon />
+      </span>
     </div>
   </div>
 </template>
@@ -45,10 +53,13 @@
 import { ref, Ref } from "vue";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
+import RandomIcon from "@/components/RandomIcon.vue";
 
 let songs: Ref<ISong[]> = ref([]);
 let currentSong: Ref<ISong> | Ref<null> = ref(null);
 let currentPosition: Ref<number> = ref(0);
+
+let randomize: Ref<boolean> = ref(false);
 
 function addSongs(e: Event) {
   if (
@@ -65,7 +76,6 @@ function addSongs(e: Event) {
           url: URL.createObjectURL(files[i]),
         };
         songs.value.push(song);
-        console.log(songs.value);
       }
     }
     e.target.value = "";
@@ -89,22 +99,36 @@ function removeSong(id: string) {
 }
 
 function moveToNextSong() {
-  if (currentPosition.value < songs.value.length) {
-    currentPosition.value++;
+  currentSong.value = null;
+  if (!randomize.value) {
+    if (currentPosition.value < songs.value.length - 1) {
+      currentPosition.value++;
+    } else {
+      currentPosition.value = 0;
+    }
   } else {
-    currentPosition.value = 0;
+    currentPosition.value = Math.floor(Math.random() * songs.value.length);
   }
-
   currentSong.value =
     songs.value.find((song, index) => {
       return currentPosition.value === index;
     }) || null;
 }
 
-function playSong(e: Event) {
+async function playSong(e: Event) {
   const audio: HTMLAudioElement | null = e.target as HTMLAudioElement;
+  if (audio) {
+    try {
+      await audio?.play();
+    } catch (error) {
+      //
+    }
+  }
+  audio.removeEventListener("canplaythrough", playSong);
+}
 
-  audio?.play();
+function randomizeSongs() {
+  randomize.value = !randomize.value;
 }
 </script>
 
@@ -179,5 +203,23 @@ nav ul li {
 
 .remove-song__button {
   cursor: pointer;
+}
+
+.song-player__container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.random-button {
+  display: inline-block;
+  height: 36px;
+  aspect-ratio: 1;
+  cursor: pointer;
+}
+
+.audio-button.active {
+  box-shadow: inset 0 0 3px #000;
+  color: red;
 }
 </style>
