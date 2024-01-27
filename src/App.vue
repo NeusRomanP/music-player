@@ -13,9 +13,9 @@
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
 }
 
 html {
@@ -26,7 +26,9 @@ html {
 }
 
 body {
-  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   padding: 0;
   margin: 0;
 }

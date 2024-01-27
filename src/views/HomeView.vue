@@ -30,7 +30,13 @@
       </div>
     </div>
     <div class="song-player__container">
-      <audio controls :src="currentSong?.url" id="current-song"></audio>
+      <audio
+        controls
+        :src="currentSong?.url"
+        id="current-song"
+        @ended="moveToNextSong"
+        @canplaythrough="playSong"
+      ></audio>
     </div>
   </div>
 </template>
@@ -42,6 +48,7 @@ import { v4 as uuidv4 } from "uuid";
 
 let songs: Ref<ISong[]> = ref([]);
 let currentSong: Ref<ISong> | Ref<null> = ref(null);
+let currentPosition: Ref<number> = ref(0);
 
 function addSongs(e: Event) {
   if (
@@ -67,7 +74,10 @@ function addSongs(e: Event) {
 
 function changeCurrentSong(id: string) {
   currentSong.value =
-    songs.value.find((song) => {
+    songs.value.find((song, index) => {
+      if (song.id === id) {
+        currentPosition.value = index;
+      }
       return song.id === id;
     }) || null;
 }
@@ -77,15 +87,37 @@ function removeSong(id: string) {
     return song.id !== id;
   });
 }
+
+function moveToNextSong() {
+  if (currentPosition.value < songs.value.length) {
+    currentPosition.value++;
+  } else {
+    currentPosition.value = 0;
+  }
+
+  currentSong.value =
+    songs.value.find((song, index) => {
+      return currentPosition.value === index;
+    }) || null;
+}
+
+function playSong(e: Event) {
+  const audio: HTMLAudioElement | null = e.target as HTMLAudioElement;
+
+  audio?.play();
+}
 </script>
 
 <style scoped>
 .home {
+  max-width: 1000px;
+  width: 90%;
+  margin: auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100%;
   flex-shrink: 1;
+  flex-grow: 1;
 }
 nav ul {
   list-style: none;
