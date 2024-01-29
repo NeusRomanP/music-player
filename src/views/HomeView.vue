@@ -31,12 +31,24 @@
     </div>
     <div class="song-player__container">
       <audio
-        controls
         :src="currentSong?.url"
         id="current-song"
         @ended="moveToNextSong"
         @canplaythrough="playSong"
+        @timeupdate="updateProgressBar"
       ></audio>
+      <span class="audio-button play-button" @click="togglePlayButton">
+        <PlayIcon v-if="!playing" />
+        <PauseIcon v-else />
+      </span>
+      <span class="progress-bar">
+        <progress
+          :value="currentTime"
+          :max="currentSongTime"
+          @click="updateProgressBarOnClick"
+          id="progress-bar"
+        />
+      </span>
       <span
         class="audio-button random-button"
         @click="randomizeSongs"
@@ -50,16 +62,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref } from "vue";
+import { ref, Ref, watch } from "vue";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
 import RandomIcon from "@/components/RandomIcon.vue";
+import PlayIcon from "@/components/PlayIcon.vue";
+import PauseIcon from "@/components/PauseIcon.vue";
 
 let songs: Ref<ISong[]> = ref([]);
 let currentSong: Ref<ISong> | Ref<null> = ref(null);
 let currentPosition: Ref<number> = ref(0);
+let currentSongTime: Ref<number> = ref(0);
+let currentTime: Ref<number> = ref(0);
 
 let randomize: Ref<boolean> = ref(false);
+let playing: Ref<boolean> = ref(false);
+
+let isSongClicked: Ref<boolean> = ref(false);
 
 function addSongs(e: Event) {
   if (
@@ -83,6 +102,7 @@ function addSongs(e: Event) {
 }
 
 function changeCurrentSong(id: string) {
+  isSongClicked.value = true;
   currentSong.value =
     songs.value.find((song, index) => {
       if (song.id === id) {
@@ -92,6 +112,12 @@ function changeCurrentSong(id: string) {
     }) || null;
 }
 
+function updateProgressBar(e: Event) {
+  const audio: HTMLAudioElement | null = e.target as HTMLAudioElement;
+
+  currentTime.value = audio.currentTime;
+}
+
 function removeSong(id: string) {
   songs.value = songs.value.filter((song) => {
     return song.id !== id;
@@ -99,7 +125,12 @@ function removeSong(id: string) {
 }
 
 function moveToNextSong() {
+  const audio: HTMLAudioElement | null = document.getElementById(
+    "current-song"
+  ) as HTMLAudioElement;
   currentSong.value = null;
+  audio.currentTime = 0;
+  playing.value = false;
   if (!randomize.value) {
     if (currentPosition.value < songs.value.length - 1) {
       currentPosition.value++;
@@ -115,11 +146,28 @@ function moveToNextSong() {
     }) || null;
 }
 
+function togglePlayButton() {
+  const audio: HTMLAudioElement | null = document.getElementById(
+    "current-song"
+  ) as HTMLAudioElement;
+
+  if (audio.src !== "" && audio.src !== null) {
+    playing.value = !playing.value;
+  } else {
+    playing.value = false;
+  }
+}
+
 async function playSong(e: Event) {
   const audio: HTMLAudioElement | null = e.target as HTMLAudioElement;
   if (audio) {
     try {
-      await audio?.play();
+      if (isSongClicked.value) {
+        await audio?.play();
+        playing.value = true;
+        isSongClicked.value = false;
+      }
+      currentSongTime.value = audio.duration || 0;
     } catch (error) {
       //
     }
@@ -127,9 +175,39 @@ async function playSong(e: Event) {
   audio.removeEventListener("canplaythrough", playSong);
 }
 
+function updateProgressBarOnClick(e: MouseEvent) {
+  if (currentSongTime.value) {
+    const progressBar: HTMLElement | null =
+      document.getElementById("progress-bar");
+    const clicX = e.offsetX;
+    const barraAncho = progressBar?.clientWidth || 0;
+
+    const audio: HTMLAudioElement | null = document.getElementById(
+      "current-song"
+    ) as HTMLAudioElement;
+
+    const porcentajeClic = (clicX / barraAncho) * 100;
+    const duracionTotal = audio.duration;
+    const nuevaPosicion = (duracionTotal * porcentajeClic) / 100;
+
+    audio.currentTime = nuevaPosicion;
+  }
+}
+
 function randomizeSongs() {
   randomize.value = !randomize.value;
 }
+
+watch(playing, (isPlaying) => {
+  const audio: HTMLAudioElement | null = document.getElementById(
+    "current-song"
+  ) as HTMLAudioElement;
+  if (isPlaying) {
+    audio.play();
+  } else {
+    audio.pause();
+  }
+});
 </script>
 
 <style scoped>
@@ -209,6 +287,8 @@ nav ul li {
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #333;
+  color: #fff;
 }
 
 .random-button {
@@ -218,8 +298,24 @@ nav ul li {
   cursor: pointer;
 }
 
+.play-button {
+  display: inline-block;
+  height: 24px;
+  aspect-ratio: 1;
+  cursor: pointer;
+}
+
 .audio-button.active {
   box-shadow: inset 0 0 3px #000;
   color: red;
+}
+
+/* Audio bar */
+audio::-webkit-media-controls-download-button {
+  display: none !important;
+}
+
+progress {
+  accent-color: #000;
 }
 </style>
