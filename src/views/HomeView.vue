@@ -49,6 +49,20 @@
           id="progress-bar"
         />
       </span>
+      <span class="volume-container">
+        <span class="volume-button" @click="toggleHasVolume">
+          <VolumeIcon v-if="hasVolume" />
+          <NoVolumeIcon v-else />
+        </span>
+        <input
+          type="range"
+          class="volume-slider"
+          min="0"
+          max="100"
+          value="50"
+          @input="changeVolume"
+        />
+      </span>
       <span
         class="audio-button random-button"
         @click="randomizeSongs"
@@ -62,23 +76,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref, watch } from "vue";
+import { onMounted, ref, Ref, watch } from "vue";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
 import RandomIcon from "@/components/RandomIcon.vue";
 import PlayIcon from "@/components/PlayIcon.vue";
 import PauseIcon from "@/components/PauseIcon.vue";
+import VolumeIcon from "@/components/VolumeIcon.vue";
+import NoVolumeIcon from "@/components/NoVolumeIcon.vue";
+
+const volumeBar: Ref<HTMLInputElement | null> = ref(null);
 
 let songs: Ref<ISong[]> = ref([]);
 let currentSong: Ref<ISong> | Ref<null> = ref(null);
 let currentPosition: Ref<number> = ref(0);
 let currentSongTime: Ref<number> = ref(0);
 let currentTime: Ref<number> = ref(0);
+let volume: Ref<number> = ref(50);
+
+let volumePercent: Ref<string> = ref(volume.value + "%");
 
 let randomize: Ref<boolean> = ref(false);
 let playing: Ref<boolean> = ref(false);
 
 let isSongClicked: Ref<boolean> = ref(false);
+let hasVolume: Ref<boolean> = ref(true);
+
+onMounted(() => {
+  volumeBar.value = document.querySelector(".volume-slider");
+  const audio: HTMLAudioElement | null = document.getElementById(
+    "current-song"
+  ) as HTMLAudioElement;
+
+  audio.volume = volume.value / 100;
+
+  console.log(audio.volume);
+});
 
 function addSongs(e: Event) {
   if (
@@ -194,8 +227,28 @@ function updateProgressBarOnClick(e: MouseEvent) {
   }
 }
 
+function changeVolume(e: Event) {
+  const newVolume = Number((e.target as HTMLInputElement).value);
+  volume.value = newVolume;
+
+  const audio: HTMLAudioElement | null = document.getElementById(
+    "current-song"
+  ) as HTMLAudioElement;
+  audio.volume = newVolume / 100;
+}
+
 function randomizeSongs() {
   randomize.value = !randomize.value;
+}
+
+function toggleHasVolume() {
+  if (hasVolume.value) {
+    hasVolume.value = false;
+    volume.value = 0;
+  } else {
+    hasVolume.value = true;
+    volume.value = 50;
+  }
 }
 
 watch(playing, (isPlaying) => {
@@ -206,6 +259,21 @@ watch(playing, (isPlaying) => {
     audio.play();
   } else {
     audio.pause();
+  }
+});
+
+watch(volume, (newVolume) => {
+  const audio: HTMLAudioElement | null = document.getElementById(
+    "current-song"
+  ) as HTMLAudioElement;
+
+  volumePercent.value = newVolume + "%";
+  audio.volume = newVolume / 100;
+
+  if (newVolume === 0) {
+    hasVolume.value = false;
+  } else {
+    hasVolume.value = true;
   }
 });
 </script>
@@ -317,5 +385,49 @@ audio::-webkit-media-controls-download-button {
 
 progress {
   accent-color: #000;
+}
+
+.volume-container {
+  position: relative;
+  display: inline-block;
+  height: 24px;
+}
+
+.volume-button {
+  height: 24px;
+  aspect-ratio: 1;
+  display: inline-block;
+}
+
+.volume-slider {
+  position: absolute;
+  width: 100px;
+  height: 24px;
+  top: 0;
+  left: 0;
+  transform: translate(-50px, -50px) rotate(270deg);
+  transform-origin: top;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(
+    to right,
+    #000 0%,
+    #000 v-bind(volumePercent),
+    #333 v-bind(volumePercent),
+    #333 100%
+  );
+  border: none;
+  box-shadow: inset 0 0 3px #fff;
+  margin: 0;
+  outline: none;
+  display: none;
+}
+
+.volume-container:hover .volume-slider {
+  display: inline-block;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  visibility: hidden;
 }
 </style>
