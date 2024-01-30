@@ -182,7 +182,6 @@ watch(
 watch(
   volume,
   (newVolume) => {
-    console.log("patata");
     const audio: HTMLAudioElement | null = document.getElementById(
       "current-song"
     ) as HTMLAudioElement;
