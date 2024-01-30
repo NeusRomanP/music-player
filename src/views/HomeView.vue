@@ -63,6 +63,8 @@ let intensity: Ref<string> = ref("0%");
 let randomize: Ref<boolean> = ref(false);
 let playing: Ref<boolean> = ref(false);
 
+let animationFrameId: number | null = null;
+
 function setAudio(newValue: HTMLAudioElement) {
   audio.value = newValue;
 }
@@ -96,6 +98,7 @@ function changeCurrentSong(id: string) {
       }
       return song.id === id;
     }) || null;
+
   setupAudio();
 }
 
@@ -141,9 +144,7 @@ function randomizeSongs() {
 function setupAudio() {
   const audioContext = new window.AudioContext();
   const analyser = audioContext.createAnalyser();
-  const audioElement = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
+  const audioElement = audio.value as HTMLAudioElement;
 
   try {
     const audioSource = audioContext.createMediaElementSource(audioElement);
@@ -161,10 +162,12 @@ function setupAudio() {
     const average = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
     intensity.value = Math.min(100, average) + "%";
 
-    requestAnimationFrame(updateVolume);
+    animationFrameId = requestAnimationFrame(updateVolume);
   };
 
-  updateVolume();
+  if (animationFrameId === null) {
+    updateVolume();
+  }
 }
 </script>
 
