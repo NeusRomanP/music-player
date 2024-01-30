@@ -25,7 +25,12 @@
           </div>
         </aside>
         <main class="main">
-          <h2>Song</h2>
+          <div>
+            <h2>Song</h2>
+          </div>
+          <div class="volume-intensity__container">
+            <div class="volume-intensity__bar"></div>
+          </div>
         </main>
       </div>
     </div>
@@ -76,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, Ref, watch } from "vue";
+import { onMounted, ref, Ref, watch, nextTick } from "vue";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
 import RandomIcon from "@/components/RandomIcon.vue";
@@ -93,6 +98,7 @@ let currentPosition: Ref<number> = ref(0);
 let currentSongTime: Ref<number> = ref(0);
 let currentTime: Ref<number> = ref(0);
 let volume: Ref<number> = ref(50);
+let intensity: Ref<string> = ref("0%");
 
 let volumePercent: Ref<string> = ref(volume.value + "%");
 
@@ -109,8 +115,6 @@ onMounted(() => {
   ) as HTMLAudioElement;
 
   audio.volume = volume.value / 100;
-
-  console.log(audio.volume);
 });
 
 function addSongs(e: Event) {
@@ -143,6 +147,8 @@ function changeCurrentSong(id: string) {
       }
       return song.id === id;
     }) || null;
+
+  setupAudio();
 }
 
 function updateProgressBar(e: Event) {
@@ -157,7 +163,7 @@ function removeSong(id: string) {
   });
 }
 
-function moveToNextSong() {
+async function moveToNextSong() {
   const audio: HTMLAudioElement | null = document.getElementById(
     "current-song"
   ) as HTMLAudioElement;
@@ -177,6 +183,9 @@ function moveToNextSong() {
     songs.value.find((song, index) => {
       return currentPosition.value === index;
     }) || null;
+  nextTick(() => {
+    playing.value = true;
+  });
 }
 
 function togglePlayButton() {
@@ -251,12 +260,44 @@ function toggleHasVolume() {
   }
 }
 
+function setupAudio() {
+  const audioContext = new window.AudioContext();
+  const analyser = audioContext.createAnalyser();
+  const audioElement = document.getElementById(
+    "current-song"
+  ) as HTMLAudioElement;
+
+  try {
+    const audioSource = audioContext.createMediaElementSource(audioElement);
+    audioSource.connect(analyser);
+    analyser.connect(audioContext.destination);
+  } catch (e) {
+    //
+  }
+
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+
+  const updateVolume = () => {
+    analyser.getByteFrequencyData(dataArray);
+    const average = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
+    intensity.value = Math.min(100, average) + "%";
+    requestAnimationFrame(updateVolume);
+  };
+
+  updateVolume();
+}
+
 watch(playing, (isPlaying) => {
   const audio: HTMLAudioElement | null = document.getElementById(
     "current-song"
   ) as HTMLAudioElement;
   if (isPlaying) {
-    audio.play();
+    try {
+      audio.play();
+    } catch (e) {
+      audio.pause();
+    }
   } else {
     audio.pause();
   }
@@ -302,16 +343,42 @@ nav ul li {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 16px;
+  flex-grow: 1;
 }
 
 .aside,
 .main {
   border: 1px solid black;
   border-radius: 8px;
+  flex-grow: 1;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.volume-intensity__container {
+  position: relative;
+  width: 90%;
+  background-color: #004;
+  flex-grow: 1;
+}
+
+.volume-intensity__bar {
+  position: absolute;
+  width: 100%;
+  display: block;
+  bottom: 0;
+  background-color: #400;
+  height: v-bind(intensity);
 }
 
 .songs-info__container {
-  flex-shrink: 1;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-container {
@@ -364,6 +431,7 @@ nav ul li {
   height: 36px;
   aspect-ratio: 1;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .play-button {
