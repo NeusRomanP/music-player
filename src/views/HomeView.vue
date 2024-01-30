@@ -34,88 +34,38 @@
         </main>
       </div>
     </div>
-    <div class="song-player__container">
-      <audio
-        :src="currentSong?.url"
-        id="current-song"
-        @ended="moveToNextSong"
-        @canplaythrough="playSong"
-        @timeupdate="updateProgressBar"
-      ></audio>
-      <span class="audio-button play-button" @click="togglePlayButton">
-        <PlayIcon v-if="!playing" />
-        <PauseIcon v-else />
-      </span>
-      <span class="progress-bar">
-        <progress
-          :value="currentTime"
-          :max="currentSongTime"
-          @click="updateProgressBarOnClick"
-          id="progress-bar"
-        />
-      </span>
-      <span class="volume-container">
-        <span class="volume-button" @click="toggleHasVolume">
-          <VolumeIcon v-if="hasVolume" />
-          <NoVolumeIcon v-else />
-        </span>
-        <input
-          type="range"
-          class="volume-slider"
-          min="0"
-          max="100"
-          value="50"
-          @input="changeVolume"
-        />
-      </span>
-      <span
-        class="audio-button random-button"
-        @click="randomizeSongs"
-        :class="randomize ? 'active' : ''"
-        :title="randomize ? 'unrandomize' : 'randomize'"
-      >
-        <RandomIcon />
-      </span>
-    </div>
+    <AudioBar
+      :currentSong="currentSong"
+      :playing="playing"
+      :randomize="randomize"
+      @moveToNextSong="moveToNextSong"
+      @setPlaying="setPlaying"
+      @randomizeSongs="randomizeSongs"
+      @setAudio="setAudio"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, Ref, watch, nextTick } from "vue";
+import { ref, Ref, nextTick } from "vue";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
-import RandomIcon from "@/components/RandomIcon.vue";
-import PlayIcon from "@/components/PlayIcon.vue";
-import PauseIcon from "@/components/PauseIcon.vue";
-import VolumeIcon from "@/components/VolumeIcon.vue";
-import NoVolumeIcon from "@/components/NoVolumeIcon.vue";
+import AudioBar from "@/components/AudioBar.vue";
 
-const volumeBar: Ref<HTMLInputElement | null> = ref(null);
+let audio: Ref<HTMLAudioElement | null> = ref(null);
 
 let songs: Ref<ISong[]> = ref([]);
 let currentSong: Ref<ISong> | Ref<null> = ref(null);
 let currentPosition: Ref<number> = ref(0);
-let currentSongTime: Ref<number> = ref(0);
-let currentTime: Ref<number> = ref(0);
-let volume: Ref<number> = ref(50);
-let intensity: Ref<string> = ref("0%");
 
-let volumePercent: Ref<string> = ref(volume.value + "%");
+let intensity: Ref<string> = ref("0%");
 
 let randomize: Ref<boolean> = ref(false);
 let playing: Ref<boolean> = ref(false);
 
-let isSongClicked: Ref<boolean> = ref(false);
-let hasVolume: Ref<boolean> = ref(true);
-
-onMounted(() => {
-  volumeBar.value = document.querySelector(".volume-slider");
-  const audio: HTMLAudioElement | null = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
-
-  audio.volume = volume.value / 100;
-});
+function setAudio(newValue: HTMLAudioElement) {
+  audio.value = newValue;
+}
 
 function addSongs(e: Event) {
   if (
@@ -139,7 +89,6 @@ function addSongs(e: Event) {
 }
 
 function changeCurrentSong(id: string) {
-  isSongClicked.value = true;
   currentSong.value =
     songs.value.find((song, index) => {
       if (song.id === id) {
@@ -147,14 +96,7 @@ function changeCurrentSong(id: string) {
       }
       return song.id === id;
     }) || null;
-
   setupAudio();
-}
-
-function updateProgressBar(e: Event) {
-  const audio: HTMLAudioElement | null = e.target as HTMLAudioElement;
-
-  currentTime.value = audio.currentTime;
 }
 
 function removeSong(id: string) {
@@ -188,76 +130,12 @@ async function moveToNextSong() {
   });
 }
 
-function togglePlayButton() {
-  const audio: HTMLAudioElement | null = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
-
-  if (audio.src !== "" && audio.src !== null) {
-    playing.value = !playing.value;
-  } else {
-    playing.value = false;
-  }
-}
-
-async function playSong(e: Event) {
-  const audio: HTMLAudioElement | null = e.target as HTMLAudioElement;
-  if (audio) {
-    try {
-      if (isSongClicked.value) {
-        await audio?.play();
-        playing.value = true;
-        isSongClicked.value = false;
-      }
-      currentSongTime.value = audio.duration || 0;
-    } catch (error) {
-      //
-    }
-  }
-  audio.removeEventListener("canplaythrough", playSong);
-}
-
-function updateProgressBarOnClick(e: MouseEvent) {
-  if (currentSongTime.value) {
-    const progressBar: HTMLElement | null =
-      document.getElementById("progress-bar");
-    const clicX = e.offsetX;
-    const barraAncho = progressBar?.clientWidth || 0;
-
-    const audio: HTMLAudioElement | null = document.getElementById(
-      "current-song"
-    ) as HTMLAudioElement;
-
-    const porcentajeClic = (clicX / barraAncho) * 100;
-    const duracionTotal = audio.duration;
-    const nuevaPosicion = (duracionTotal * porcentajeClic) / 100;
-
-    audio.currentTime = nuevaPosicion;
-  }
-}
-
-function changeVolume(e: Event) {
-  const newVolume = Number((e.target as HTMLInputElement).value);
-  volume.value = newVolume;
-
-  const audio: HTMLAudioElement | null = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
-  audio.volume = newVolume / 100;
+function setPlaying(value: boolean) {
+  playing.value = value;
 }
 
 function randomizeSongs() {
   randomize.value = !randomize.value;
-}
-
-function toggleHasVolume() {
-  if (hasVolume.value) {
-    hasVolume.value = false;
-    volume.value = 0;
-  } else {
-    hasVolume.value = true;
-    volume.value = 50;
-  }
 }
 
 function setupAudio() {
@@ -282,41 +160,12 @@ function setupAudio() {
     analyser.getByteFrequencyData(dataArray);
     const average = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
     intensity.value = Math.min(100, average) + "%";
+
     requestAnimationFrame(updateVolume);
   };
 
   updateVolume();
 }
-
-watch(playing, (isPlaying) => {
-  const audio: HTMLAudioElement | null = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
-  if (isPlaying) {
-    try {
-      audio.play();
-    } catch (e) {
-      audio.pause();
-    }
-  } else {
-    audio.pause();
-  }
-});
-
-watch(volume, (newVolume) => {
-  const audio: HTMLAudioElement | null = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
-
-  volumePercent.value = newVolume + "%";
-  audio.volume = newVolume / 100;
-
-  if (newVolume === 0) {
-    hasVolume.value = false;
-  } else {
-    hasVolume.value = true;
-  }
-});
 </script>
 
 <style scoped>
@@ -416,86 +265,5 @@ nav ul li {
 
 .remove-song__button {
   cursor: pointer;
-}
-
-.song-player__container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #333;
-  color: #fff;
-}
-
-.random-button {
-  display: inline-block;
-  height: 36px;
-  aspect-ratio: 1;
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.play-button {
-  display: inline-block;
-  height: 24px;
-  aspect-ratio: 1;
-  cursor: pointer;
-}
-
-.audio-button.active {
-  box-shadow: inset 0 0 3px #000;
-  color: red;
-}
-
-/* Audio bar */
-audio::-webkit-media-controls-download-button {
-  display: none !important;
-}
-
-progress {
-  accent-color: #000;
-}
-
-.volume-container {
-  position: relative;
-  display: inline-block;
-  height: 24px;
-}
-
-.volume-button {
-  height: 24px;
-  aspect-ratio: 1;
-  display: inline-block;
-}
-
-.volume-slider {
-  position: absolute;
-  width: 100px;
-  height: 24px;
-  top: 0;
-  left: 0;
-  transform: translate(-50px, -50px) rotate(270deg);
-  transform-origin: top;
-  -webkit-appearance: none;
-  appearance: none;
-  background: linear-gradient(
-    to right,
-    #000 0%,
-    #000 v-bind(volumePercent),
-    #333 v-bind(volumePercent),
-    #333 100%
-  );
-  border: none;
-  box-shadow: inset 0 0 3px #fff;
-  margin: 0;
-  outline: none;
-  display: none;
-}
-
-.volume-container:hover .volume-slider {
-  display: inline-block;
-}
-
-.volume-slider::-webkit-slider-thumb {
-  visibility: hidden;
 }
 </style>
