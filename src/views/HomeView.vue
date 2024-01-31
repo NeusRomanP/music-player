@@ -376,6 +376,22 @@ nav ul li {
   cursor: pointer;
 }
 
+@media (max-width: 600px) {
+  .main-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 200px auto;
+  }
+
+  .main-container .aside {
+    width: 100%;
+  }
+
+  .song-container .song-name {
+    width: 100px;
+  }
+}
+
 /* ScrollBar */
 ::-webkit-scrollbar {
   width: 12px;
