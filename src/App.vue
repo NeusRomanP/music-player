@@ -14,7 +14,7 @@ import HomeView from "./views/HomeView.vue";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  height: 100vh;
+  height: 100dvh;
   background-color: #161616;
   color: #fff;
   display: flex;
@@ -24,14 +24,14 @@ import HomeView from "./views/HomeView.vue";
 
 html {
   height: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 0;
   margin: 0;
 }
 
 body {
-  min-height: 100vh;
-  max-height: 100vh;
+  min-height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   padding: 0;

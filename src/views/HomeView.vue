@@ -238,7 +238,7 @@ watch(
 .home {
   max-width: 1000px;
   width: 90%;
-  height: 100vh;
+  height: 100dvh;
   margin: auto;
   display: flex;
   flex-direction: column;
