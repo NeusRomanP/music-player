@@ -79,10 +79,10 @@ let audio: Ref<HTMLAudioElement | null> = ref(null);
 
 onMounted(() => {
   audio.value = document.getElementById("current-song") as HTMLAudioElement;
-  emits("setAudio", audio);
   volumeBar.value = document.querySelector(".volume-slider");
 
   audio.value.volume = volume.value / 100;
+  emits("setAudio", audio.value);
 });
 
 function togglePlayButton() {
