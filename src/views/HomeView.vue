@@ -306,6 +306,7 @@ nav ul li {
 .song-container .song-name {
   text-align: left;
   overflow: hidden;
+  padding-block: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -371,5 +372,31 @@ nav ul li {
 
 .remove-song__button {
   cursor: pointer;
+}
+
+/* ScrollBar */
+::-webkit-scrollbar {
+  width: 12px;
+  border-radius: 8px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #666;
+  border-radius: 12px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #000;
+  box-shadow: inset 0 0 3px #fff;
+  width: 8px;
+  border-radius: 8px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #004;
+  box-shadow: inset 0 0 3px #fff;
 }
 </style>
