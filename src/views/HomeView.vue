@@ -20,12 +20,13 @@
           <h2>Song list</h2>
           <div class="songs__container">
             <div class="songs__inner-container">
-              <div v-for="sng in songs" :key="sng.id" class="song-container">
-                <span
-                  @click="changeCurrentSong(sng.id)"
-                  class="song-name"
-                  :title="sng.file.name"
-                >
+              <div
+                v-for="sng in songs"
+                :key="sng.id"
+                class="song-container"
+                @click="changeCurrentSong(sng.id)"
+              >
+                <span class="song-name" :title="sng.file.name">
                   {{ sng.file.name }}
                 </span>
                 <span class="remove-song__button" @click="removeSong(sng.id)">
@@ -298,6 +299,8 @@ nav ul li {
 
 .song-container {
   display: flex;
+  padding-right: 8px;
+  padding-block: 8px;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
@@ -306,7 +309,6 @@ nav ul li {
 .song-container .song-name {
   text-align: left;
   overflow: hidden;
-  padding-block: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
