@@ -217,6 +217,7 @@ watch(
   background-color: #333;
   color: #fff;
   padding: 8px;
+  height: 70px;
 }
 
 .random-button {

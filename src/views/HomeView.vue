@@ -6,6 +6,7 @@
           <li>
             <input
               type="file"
+              accept="audio/*"
               name="songs"
               multiple
               class="add-song"
@@ -17,13 +18,21 @@
       <div class="main-container">
         <aside class="aside">
           <h2>Song list</h2>
-          <div v-for="sng in songs" :key="sng.id" class="song-container">
-            <span @click="changeCurrentSong(sng.id)" class="song-name">
-              {{ sng.file.name }}
-            </span>
-            <span class="remove-song__button" @click="removeSong(sng.id)">
-              ❌
-            </span>
+          <div class="songs__container">
+            <div class="songs__inner-container">
+              <div v-for="sng in songs" :key="sng.id" class="song-container">
+                <span
+                  @click="changeCurrentSong(sng.id)"
+                  class="song-name"
+                  :title="sng.file.name"
+                >
+                  {{ sng.file.name }}
+                </span>
+                <span class="remove-song__button" @click="removeSong(sng.id)">
+                  ❌
+                </span>
+              </div>
+            </div>
           </div>
         </aside>
         <main class="main">
@@ -56,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref, nextTick, watch, watchEffect } from "vue";
+import { ref, Ref, nextTick, watch } from "vue";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
 import AudioBar from "@/components/AudioBar.vue";
@@ -122,6 +131,9 @@ function changeCurrentSong(id: string) {
 
 function removeSong(id: string) {
   songs.value = songs.value.filter((song) => {
+    if (song.id === id && song.id === currentSong.value?.id) {
+      currentSong.value = null;
+    }
     return song.id !== id;
   });
 }
@@ -225,6 +237,7 @@ watch(
 .home {
   max-width: 1000px;
   width: 90%;
+  height: 100vh;
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -243,27 +256,44 @@ nav ul li {
 }
 
 .main-container {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
+  display: flex;
   gap: 16px;
   flex-grow: 1;
+  overflow: auto;
 }
 
 .aside,
 .main {
   border: 1px solid #fff;
   border-radius: 8px;
-  flex-grow: 1;
 }
 
 .main {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-grow: 1;
 }
 
 .aside {
+  width: 300px;
   padding: 8px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100% - 0px);
+}
+
+.songs__container {
+  flex-grow: 1;
+  max-height: 100%;
+  max-height: fit-content;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.songs__inner-container {
+  height: 100%;
+  overflow: auto;
 }
 
 .song-container {
@@ -281,6 +311,7 @@ nav ul li {
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex-grow: 1;
+  cursor: pointer;
 }
 
 .volume-intensity__container {
@@ -302,6 +333,7 @@ nav ul li {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  max-height: calc(100% - 86px);
 }
 
 .main-container {
