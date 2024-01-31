@@ -16,9 +16,11 @@
       </nav>
       <div class="main-container">
         <aside class="aside">
-          <h3>Song list</h3>
-          <div v-for="sng in songs" :key="sng.id">
-            <span @click="changeCurrentSong(sng.id)">{{ sng.file.name }}</span>
+          <h2>Song list</h2>
+          <div v-for="sng in songs" :key="sng.id" class="song-container">
+            <span @click="changeCurrentSong(sng.id)" class="song-name">
+              {{ sng.file.name }}
+            </span>
             <span class="remove-song__button" @click="removeSong(sng.id)">
               ❌
             </span>
@@ -27,6 +29,12 @@
         <main class="main">
           <div>
             <h2>Song</h2>
+            <div v-if="currentSong?.file.name">
+              <h3>{{ currentSong?.file.name }}</h3>
+              <p v-if="currentSongSecondStr && currentSongDuration">
+                {{ currentSongSecondStr }} / {{ currentSongDuration }}
+              </p>
+            </div>
           </div>
           <div class="volume-intensity__container">
             <div class="volume-intensity__bar"></div>
@@ -42,12 +50,13 @@
       @setPlaying="setPlaying"
       @randomizeSongs="randomizeSongs"
       @setAudio="setAudio"
+      @setCurrentSecond="setCurrentSecond"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, Ref, nextTick } from "vue";
+import { ref, Ref, nextTick, watch, watchEffect } from "vue";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
 import AudioBar from "@/components/AudioBar.vue";
@@ -57,8 +66,12 @@ let audio: Ref<HTMLAudioElement | null> = ref(null);
 let songs: Ref<ISong[]> = ref([]);
 let currentSong: Ref<ISong> | Ref<null> = ref(null);
 let currentPosition: Ref<number> = ref(0);
+let currentSongSeconds: Ref<number> = ref(0);
+let currentSongSecond: Ref<number> = ref(0);
 
 let intensity: Ref<string> = ref("0%");
+let currentSongDuration: Ref<string | null> = ref(null);
+let currentSongSecondStr: Ref<string | null> = ref(null);
 
 let randomize: Ref<boolean> = ref(false);
 let playing: Ref<boolean> = ref(false);
@@ -67,6 +80,11 @@ let animationFrameId: number | null = null;
 
 function setAudio(newValue: HTMLAudioElement) {
   audio.value = newValue;
+  currentSongSeconds.value = newValue.duration;
+}
+
+function setCurrentSecond(newValue: number) {
+  currentSongSecond.value = newValue;
 }
 
 function addSongs(e: Event) {
@@ -169,6 +187,38 @@ function setupAudio() {
     updateVolume();
   }
 }
+
+function parseTime(seconds: number) {
+  let hours = Math.floor(seconds / 3600)
+    .toString()
+    .padStart(2, "0");
+  let rest = seconds % 3600;
+  let min = Math.floor(rest / 60)
+    .toString()
+    .padStart(2, "0");
+  let sec = Math.floor(rest % 60)
+    .toString()
+    .padStart(2, "0");
+
+  return hours !== "00" ? `${hours}:${min}:${sec}` : `${min}:${sec}`;
+}
+
+watch(
+  [currentSongSeconds, currentSongSecond],
+  ([totalSeconds, currentSecond]) => {
+    if (totalSeconds && !Number.isNaN(totalSeconds)) {
+      currentSongDuration.value = parseTime(totalSeconds);
+    } else {
+      currentSongDuration.value = null;
+    }
+
+    if (currentSecond && !Number.isNaN(currentSecond)) {
+      currentSongSecondStr.value = parseTime(currentSecond);
+    } else {
+      currentSongSecondStr.value = null;
+    }
+  }
+);
 </script>
 
 <style scoped>
@@ -179,6 +229,7 @@ function setupAudio() {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 16px;
   flex-shrink: 1;
   flex-grow: 1;
 }
@@ -200,7 +251,7 @@ nav ul li {
 
 .aside,
 .main {
-  border: 1px solid black;
+  border: 1px solid #fff;
   border-radius: 8px;
   flex-grow: 1;
 }
@@ -211,10 +262,30 @@ nav ul li {
   align-items: center;
 }
 
+.aside {
+  padding: 8px;
+}
+
+.song-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.song-container .song-name {
+  text-align: left;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex-grow: 1;
+}
+
 .volume-intensity__container {
   position: relative;
   width: 90%;
-  background-color: #004;
   flex-grow: 1;
 }
 
@@ -223,7 +294,7 @@ nav ul li {
   width: 100%;
   display: block;
   bottom: 0;
-  background-color: #400;
+  background-color: #004;
   height: v-bind(intensity);
 }
 

@@ -63,6 +63,7 @@ const emits = defineEmits([
   "setPlaying",
   "randomizeSongs",
   "setAudio",
+  "setCurrentSecond",
 ]);
 
 const handleMoveToNextSong = () => emits("moveToNextSong");
@@ -86,11 +87,7 @@ onMounted(() => {
 });
 
 function togglePlayButton() {
-  const audio: HTMLAudioElement | null = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
-
-  if (audio.src !== "" && audio.src !== null) {
+  if (audio.value?.src !== "" && audio.value?.src !== null) {
     playing.value = !playing.value;
     emits("setPlaying", playing.value);
   } else {
@@ -100,17 +97,17 @@ function togglePlayButton() {
 }
 
 async function playSong(e: Event) {
-  const audio: HTMLAudioElement | null = e.target as HTMLAudioElement;
-  if (audio) {
+  audio.value = e.target as HTMLAudioElement;
+  if (audio.value) {
     try {
-      await audio?.play();
+      await audio.value?.play();
       playing.value = true;
-      currentSongTime.value = audio.duration || 0;
+      currentSongTime.value = audio.value.duration || 0;
     } catch (error) {
       //
     }
   }
-  audio.removeEventListener("canplaythrough", playSong);
+  audio.value.removeEventListener("canplaythrough", playSong);
 }
 
 function changeVolume(e: Event) {
@@ -137,6 +134,8 @@ function updateProgressBar(e: Event) {
   audio.value = e.target as HTMLAudioElement;
 
   currentTime.value = audio.value.currentTime;
+
+  emits("setCurrentSecond", currentTime.value);
 }
 
 function updateProgressBarOnClick(e: MouseEvent) {
@@ -182,12 +181,10 @@ watch(
 watch(
   volume,
   (newVolume) => {
-    const audio: HTMLAudioElement | null = document.getElementById(
-      "current-song"
-    ) as HTMLAudioElement;
+    audio.value = document.getElementById("current-song") as HTMLAudioElement;
 
     volumePercent.value = newVolume + "%";
-    audio.volume = newVolume / 100;
+    audio.value.volume = newVolume / 100;
 
     emits("setAudio", audio);
 
@@ -201,6 +198,14 @@ watch(
     deep: true,
   }
 );
+
+watch(
+  currentSongTime,
+  () => {
+    emits("setAudio", audio.value);
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
@@ -208,8 +213,10 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   background-color: #333;
   color: #fff;
+  padding: 8px;
 }
 
 .random-button {
@@ -237,7 +244,12 @@ audio::-webkit-media-controls-download-button {
   display: none !important;
 }
 
+.progress-bar {
+  flex-grow: 1;
+}
+
 progress {
+  width: 100%;
   accent-color: #000;
 }
 
