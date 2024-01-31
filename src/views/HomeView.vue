@@ -308,10 +308,10 @@ nav ul li {
 
 .song-container .song-name {
   text-align: left;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  display: block;
   overflow: hidden;
   flex-grow: 1;
   cursor: pointer;
