@@ -8,7 +8,7 @@
       @timeupdate="updateProgressBar"
     ></audio>
     <span class="audio-button play-button" @click="togglePlayButton">
-      <PlayIcon v-if="!playing" />
+      <PlayIcon v-if="!props.playing" />
       <PauseIcon v-else />
     </span>
     <span class="progress-bar">
@@ -160,21 +160,26 @@ function updateProgressBarOnClick(e: MouseEvent) {
 watch(
   playing,
   (isPlaying: boolean) => {
-    const audio: HTMLAudioElement | null = document.getElementById(
-      "current-song"
-    ) as HTMLAudioElement;
+    emits("setPlaying", isPlaying);
     if (isPlaying) {
       try {
-        audio.play();
+        audio.value?.play();
       } catch (e) {
-        audio.pause();
+        audio.value?.pause();
       }
     } else {
-      audio.pause();
+      audio.value?.pause();
     }
   },
   {
     deep: true,
+  }
+);
+
+watch(
+  () => props.playing,
+  (newValue) => {
+    playing.value = newValue;
   }
 );
 

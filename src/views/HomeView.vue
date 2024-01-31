@@ -134,17 +134,17 @@ function removeSong(id: string) {
   songs.value = songs.value.filter((song) => {
     if (song.id === id && song.id === currentSong.value?.id) {
       currentSong.value = null;
+      playing.value = false;
     }
     return song.id !== id;
   });
 }
 
 async function moveToNextSong() {
-  const audio: HTMLAudioElement | null = document.getElementById(
-    "current-song"
-  ) as HTMLAudioElement;
   currentSong.value = null;
-  audio.currentTime = 0;
+  if (audio.value) {
+    audio.value.currentTime = 0;
+  }
   playing.value = false;
   if (!randomize.value) {
     if (currentPosition.value < songs.value.length - 1) {
