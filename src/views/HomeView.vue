@@ -106,12 +106,14 @@ function addSongs(e: Event) {
     const files = e.target.files;
     if (files) {
       for (let i = 0; i < files.length; i++) {
-        const song: ISong = {
-          id: uuidv4(),
-          file: files[i],
-          url: URL.createObjectURL(files[i]),
-        };
-        songs.value.push(song);
+        if (files[i].type.includes("audio")) {
+          const song: ISong = {
+            id: uuidv4(),
+            file: files[i],
+            url: URL.createObjectURL(files[i]),
+          };
+          songs.value.push(song);
+        }
       }
     }
     e.target.value = "";
