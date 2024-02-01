@@ -20,15 +20,16 @@
           <h2>Song list</h2>
           <div class="songs__container">
             <div class="songs__inner-container">
-              <div
-                v-for="sng in songs"
-                :key="sng.id"
-                class="song-container"
-                @click="changeCurrentSong(sng.id)"
-              >
-                <span class="song-name" :title="sng.file.name">
-                  {{ sng.file.name }}
-                </span>
+              <div v-for="sng in songs" :key="sng.id" class="song-container">
+                <div class="song-name__container">
+                  <span
+                    class="song-name"
+                    :title="sng.file.name"
+                    @click="changeCurrentSong(sng.id)"
+                  >
+                    {{ sng.file.name }}
+                  </span>
+                </div>
                 <span class="remove-song__button" @click="removeSong(sng.id)">
                   ❌
                 </span>
@@ -134,7 +135,7 @@ function changeCurrentSong(id: string) {
 
 function removeSong(id: string) {
   songs.value = songs.value.filter((song) => {
-    if (song.id === id && song.id === currentSong.value?.id) {
+    if (song.id === id && id === currentSong.value?.id) {
       currentSong.value = null;
       playing.value = false;
     }
@@ -302,10 +303,16 @@ nav ul li {
 .song-container {
   display: flex;
   padding-right: 8px;
-  padding-block: 8px;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+}
+
+.song-container .song-name__container {
+  flex-grow: 1;
+  width: 100px;
+  padding-block: 8px;
+  cursor: pointer;
 }
 
 .song-container .song-name {
@@ -316,7 +323,6 @@ nav ul li {
   display: block;
   overflow: hidden;
   flex-grow: 1;
-  cursor: pointer;
 }
 
 .volume-intensity__container {
