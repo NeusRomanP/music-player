@@ -71,6 +71,7 @@ import { useStore } from "vuex";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
 import AudioBar from "@/components/AudioBar.vue";
+import { parseTime } from "@/utils/helpers";
 
 const store = useStore();
 
@@ -199,21 +200,6 @@ function setupAudio() {
   if (animationFrameId === null) {
     updateVolume();
   }
-}
-
-function parseTime(seconds: number) {
-  let hours = Math.floor(seconds / 3600)
-    .toString()
-    .padStart(2, "0");
-  let rest = seconds % 3600;
-  let min = Math.floor(rest / 60)
-    .toString()
-    .padStart(2, "0");
-  let sec = Math.floor(rest % 60)
-    .toString()
-    .padStart(2, "0");
-
-  return hours !== "00" ? `${hours}:${min}:${sec}` : `${min}:${sec}`;
 }
 
 watch(

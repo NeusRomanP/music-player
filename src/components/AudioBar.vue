@@ -12,7 +12,16 @@
       <PauseIcon v-else />
     </span>
     <span class="progress-bar">
+      <div
+        class="progress-bar-tooltip"
+        v-if="showTooltip"
+        :style="{ left: tooltipX + '%' }"
+      >
+        {{ parseTime(tooltipValue) }}
+      </div>
       <progress
+        @mousemove="displayTime"
+        @mouseleave="showTooltip = false"
         :value="currentTime"
         :max="currentSongTime"
         @click="updateProgressBarOnClick"
@@ -47,6 +56,7 @@
 <script setup lang="ts">
 import { defineEmits, ref, Ref, watch, onMounted } from "vue";
 import { useStore } from "vuex";
+import { parseTime } from "@/utils/helpers";
 import RandomIcon from "@/icons/RandomIcon.vue";
 import PlayIcon from "@/icons/PlayIcon.vue";
 import PauseIcon from "@/icons/PauseIcon.vue";
@@ -66,6 +76,9 @@ let volume: Ref<number> = ref(50);
 let volumePercent: Ref<string> = ref(volume.value + "%");
 let hasVolume: Ref<boolean> = ref(true);
 let audio: Ref<HTMLAudioElement | null> = ref(null);
+const showTooltip: Ref<boolean> = ref(false);
+const tooltipX: Ref<number> = ref(0);
+const tooltipValue: Ref<number> = ref(0);
 
 onMounted(() => {
   audio.value = document.getElementById("current-song") as HTMLAudioElement;
@@ -126,21 +139,35 @@ function updateProgressBar(e: Event) {
 }
 
 function updateProgressBarOnClick(e: MouseEvent) {
-  if (currentSongTime.value) {
+  if (currentSongTime.value && audio.value) {
     const progressBar: HTMLElement | null =
       document.getElementById("progress-bar");
     const clicX = e.offsetX;
-    const barraAncho = progressBar?.clientWidth || 0;
+    const barWidth = progressBar?.clientWidth || 0;
 
-    const audio: HTMLAudioElement | null = document.getElementById(
-      "current-song"
-    ) as HTMLAudioElement;
+    const clickPercent = (clicX / barWidth) * 100;
+    const totalDuration = audio.value.duration;
+    const newPosition = (totalDuration * clickPercent) / 100;
 
-    const porcentajeClic = (clicX / barraAncho) * 100;
-    const duracionTotal = audio.duration;
-    const nuevaPosicion = (duracionTotal * porcentajeClic) / 100;
+    audio.value.currentTime = newPosition;
+  }
+}
 
-    audio.currentTime = nuevaPosicion;
+function displayTime(e: MouseEvent) {
+  if (currentSongTime.value && audio.value) {
+    const progressBar: HTMLElement | null =
+      document.getElementById("progress-bar");
+    const clicX = e.offsetX;
+    const barWidth = progressBar?.clientWidth || 0;
+
+    const positionPercent = (clicX / barWidth) * 100;
+    const totalDuration = audio.value.duration || 0;
+    const timeValue = (totalDuration * positionPercent) / 100;
+
+    tooltipX.value = positionPercent;
+
+    tooltipValue.value = timeValue;
+    showTooltip.value = true;
   }
 }
 
@@ -218,6 +245,18 @@ audio::-webkit-media-controls-download-button {
 
 .progress-bar {
   flex-grow: 1;
+  position: relative;
+}
+
+.progress-bar-tooltip {
+  background: #000;
+  padding: 4px 8px;
+  border: 1px solid #000;
+  box-shadow: inset 0 0 3px #fff;
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, -100%);
+  z-index: 1;
 }
 
 progress {
