@@ -1,14 +1,14 @@
 <template>
   <div class="song-player__container">
     <audio
-      :src="props.currentSong?.url"
+      :src="store.state.currentSong?.url"
       id="current-song"
       @ended="handleMoveToNextSong"
       @canplaythrough="playSong"
       @timeupdate="updateProgressBar"
     ></audio>
     <span class="audio-button play-button" @click="togglePlayButton">
-      <PlayIcon v-if="!props.playing" />
+      <PlayIcon v-if="!store.state.playing" />
       <PauseIcon v-else />
     </span>
     <span class="progress-bar">
@@ -35,9 +35,9 @@
     </span>
     <span
       class="audio-button random-button"
-      @click="handleRandomizeSongs"
-      :class="props.randomize ? 'active' : ''"
-      :title="props.randomize ? 'unrandomize' : 'randomize'"
+      @click="store.commit('setRandomize', !store.state.randomize)"
+      :class="store.state.randomize ? 'active' : ''"
+      :title="store.state.randomize ? 'unrandomize' : 'randomize'"
     >
       <RandomIcon />
     </span>
@@ -45,29 +45,19 @@
 </template>
 
 <script setup lang="ts">
+import { defineEmits, ref, Ref, watch, onMounted } from "vue";
+import { useStore } from "vuex";
 import RandomIcon from "@/icons/RandomIcon.vue";
 import PlayIcon from "@/icons/PlayIcon.vue";
 import PauseIcon from "@/icons/PauseIcon.vue";
 import VolumeIcon from "@/icons/VolumeIcon.vue";
 import NoVolumeIcon from "@/icons/NoVolumeIcon.vue";
-import ISong from "@/interfaces/ISong";
-import { defineProps, defineEmits, ref, Ref, watch, onMounted } from "vue";
-const props = defineProps({
-  currentSong: Object as () => ISong | null,
-  playing: Boolean,
-  randomize: Boolean,
-});
 
-const emits = defineEmits([
-  "moveToNextSong",
-  "setPlaying",
-  "randomizeSongs",
-  "setAudio",
-  "setCurrentSecond",
-]);
+const emits = defineEmits(["moveToNextSong", "setAudio", "setCurrentSecond"]);
 
 const handleMoveToNextSong = () => emits("moveToNextSong");
-const handleRandomizeSongs = () => emits("randomizeSongs");
+
+const store = useStore();
 
 const volumeBar: Ref<HTMLInputElement | null> = ref(null);
 let currentSongTime: Ref<number> = ref(0);
@@ -75,7 +65,6 @@ let currentTime: Ref<number> = ref(0);
 let volume: Ref<number> = ref(50);
 let volumePercent: Ref<string> = ref(volume.value + "%");
 let hasVolume: Ref<boolean> = ref(true);
-let playing: Ref<boolean> = ref(props.playing);
 let audio: Ref<HTMLAudioElement | null> = ref(null);
 
 onMounted(() => {
@@ -88,11 +77,9 @@ onMounted(() => {
 
 function togglePlayButton() {
   if (audio.value?.src !== "" && audio.value?.src !== null) {
-    playing.value = !playing.value;
-    emits("setPlaying", playing.value);
+    store.commit("setPlaying", !store.state.playing);
   } else {
-    playing.value = false;
-    emits("setPlaying", playing.value);
+    store.commit("setPlaying", false);
   }
 }
 
@@ -101,7 +88,7 @@ async function playSong(e: Event) {
   if (audio.value) {
     try {
       await audio.value?.play();
-      playing.value = true;
+      store.commit("setPlaying", true);
       currentSongTime.value = audio.value.duration || 0;
     } catch (error) {
       //
@@ -158,9 +145,8 @@ function updateProgressBarOnClick(e: MouseEvent) {
 }
 
 watch(
-  playing,
+  () => store.state.playing,
   (isPlaying: boolean) => {
-    emits("setPlaying", isPlaying);
     if (isPlaying) {
       try {
         audio.value?.play();
@@ -170,47 +156,27 @@ watch(
     } else {
       audio.value?.pause();
     }
-  },
-  {
-    deep: true,
   }
 );
 
-watch(
-  () => props.playing,
-  (newValue) => {
-    playing.value = newValue;
+watch(volume, (newVolume) => {
+  audio.value = document.getElementById("current-song") as HTMLAudioElement;
+
+  volumePercent.value = newVolume + "%";
+  audio.value.volume = newVolume / 100;
+
+  emits("setAudio", audio);
+
+  if (newVolume === 0) {
+    hasVolume.value = false;
+  } else {
+    hasVolume.value = true;
   }
-);
+});
 
-watch(
-  volume,
-  (newVolume) => {
-    audio.value = document.getElementById("current-song") as HTMLAudioElement;
-
-    volumePercent.value = newVolume + "%";
-    audio.value.volume = newVolume / 100;
-
-    emits("setAudio", audio);
-
-    if (newVolume === 0) {
-      hasVolume.value = false;
-    } else {
-      hasVolume.value = true;
-    }
-  },
-  {
-    deep: true,
-  }
-);
-
-watch(
-  currentSongTime,
-  () => {
-    emits("setAudio", audio.value);
-  },
-  { deep: true }
-);
+watch(currentSongTime, () => {
+  emits("setAudio", audio.value);
+});
 </script>
 
 <style scoped>

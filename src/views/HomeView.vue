@@ -20,7 +20,11 @@
           <h2>Song list</h2>
           <div class="songs__container">
             <div class="songs__inner-container">
-              <div v-for="sng in songs" :key="sng.id" class="song-container">
+              <div
+                v-for="sng in store.state.songs"
+                :key="sng.id"
+                class="song-container"
+              >
                 <div class="song-name__container">
                   <span
                     class="song-name"
@@ -40,8 +44,8 @@
         <main class="main">
           <div>
             <h2>Song</h2>
-            <div v-if="currentSong?.file.name">
-              <h3>{{ currentSong?.file.name }}</h3>
+            <div v-if="store.state.currentSong?.file.name">
+              <h3>{{ store.state.currentSong?.file.name }}</h3>
               <p v-if="currentSongSecondStr && currentSongDuration">
                 {{ currentSongSecondStr }} / {{ currentSongDuration }}
               </p>
@@ -54,12 +58,7 @@
       </div>
     </div>
     <AudioBar
-      :currentSong="currentSong"
-      :playing="playing"
-      :randomize="randomize"
       @moveToNextSong="moveToNextSong"
-      @setPlaying="setPlaying"
-      @randomizeSongs="randomizeSongs"
       @setAudio="setAudio"
       @setCurrentSecond="setCurrentSecond"
     />
@@ -68,14 +67,15 @@
 
 <script setup lang="ts">
 import { ref, Ref, nextTick, watch } from "vue";
+import { useStore } from "vuex";
 import ISong from "@/interfaces/ISong";
 import { v4 as uuidv4 } from "uuid";
 import AudioBar from "@/components/AudioBar.vue";
 
+const store = useStore();
+
 let audio: Ref<HTMLAudioElement | null> = ref(null);
 
-let songs: Ref<ISong[]> = ref([]);
-let currentSong: Ref<ISong> | Ref<null> = ref(null);
 let currentPosition: Ref<number> = ref(0);
 let currentSongSeconds: Ref<number> = ref(0);
 let currentSongSecond: Ref<number> = ref(0);
@@ -83,9 +83,6 @@ let currentSongSecond: Ref<number> = ref(0);
 let intensity: Ref<string> = ref("0%");
 let currentSongDuration: Ref<string | null> = ref(null);
 let currentSongSecondStr: Ref<string | null> = ref(null);
-
-let randomize: Ref<boolean> = ref(false);
-let playing: Ref<boolean> = ref(false);
 
 let animationFrameId: number | null = null;
 
@@ -113,7 +110,7 @@ function addSongs(e: Event) {
             file: files[i],
             url: URL.createObjectURL(files[i]),
           };
-          songs.value.push(song);
+          store.commit("addSong", song);
         }
       }
     }
@@ -122,57 +119,57 @@ function addSongs(e: Event) {
 }
 
 function changeCurrentSong(id: string) {
-  currentSong.value =
-    songs.value.find((song, index) => {
+  const songs = store.state.songs;
+  const newSong =
+    songs.find((song: ISong, index: number) => {
       if (song.id === id) {
         currentPosition.value = index;
       }
       return song.id === id;
     }) || null;
 
+  store.commit("setCurrentSong", newSong);
+
   setupAudio();
 }
 
 function removeSong(id: string) {
-  songs.value = songs.value.filter((song) => {
-    if (song.id === id && id === currentSong.value?.id) {
-      currentSong.value = null;
-      playing.value = false;
+  const songs = store.state.songs;
+  const newSongs = songs.filter((song: ISong) => {
+    if (song.id === id && id === store.state.currentSong?.id) {
+      store.commit("setCurrentSong", null);
+      store.commit("setPlaying", false);
     }
     return song.id !== id;
   });
+  store.commit("setSongs", newSongs);
 }
 
 async function moveToNextSong() {
-  currentSong.value = null;
+  const songs = store.state.songs;
+  store.commit("setCurrentSong", null);
   if (audio.value) {
     audio.value.currentTime = 0;
   }
-  playing.value = false;
-  if (!randomize.value) {
-    if (currentPosition.value < songs.value.length - 1) {
+  store.commit("setPlaying", false);
+  if (!store.state.randomize) {
+    if (currentPosition.value < songs.length - 1) {
       currentPosition.value++;
     } else {
       currentPosition.value = 0;
     }
   } else {
-    currentPosition.value = Math.floor(Math.random() * songs.value.length);
+    currentPosition.value = Math.floor(Math.random() * songs.length);
   }
-  currentSong.value =
-    songs.value.find((song, index) => {
+  const newSong =
+    songs.find((song: ISong, index: number) => {
       return currentPosition.value === index;
     }) || null;
+
+  store.commit("setCurrentSong", newSong);
   nextTick(() => {
-    playing.value = true;
+    store.commit("setPlaying", true);
   });
-}
-
-function setPlaying(value: boolean) {
-  playing.value = value;
-}
-
-function randomizeSongs() {
-  randomize.value = !randomize.value;
 }
 
 function setupAudio() {
