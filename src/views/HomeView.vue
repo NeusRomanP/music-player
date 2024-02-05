@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div class="songs-info__container">
-      <nav>
+      <header>
         <ul>
           <li>
             <input
@@ -14,7 +14,7 @@
             />
           </li>
         </ul>
-      </nav>
+      </header>
       <div class="main-container">
         <aside class="aside">
           <h2>Song list</h2>
